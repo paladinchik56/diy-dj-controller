@@ -39,8 +39,6 @@ See [`schematic.svg`](schematic.svg) for the wiring diagram and [`PINOUT.md`](PI
 
 ## Firmware
 
-Not started yet. Planned technology stack:
-
 - **STM32CubeIDE** — IDE used for editing, building, flashing and debugging the firmware
 - **STM32CubeMX** — clock tree and peripheral configuration, generates the HAL-based project skeleton
 - **STM32Cube HAL** (Hardware Abstraction Layer) — GPIO, ADC and USART peripheral drivers
