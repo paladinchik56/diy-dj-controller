@@ -39,4 +39,16 @@ See [`schematic.svg`](schematic.svg) for the wiring diagram and [`PINOUT.md`](PI
 
 ## Firmware
 
-Not started. Planned: STM32CubeIDE/CubeMX, USB-MIDI class (adapted from ST's own MIDI streaming example, since CubeMX has no turnkey MIDI template for the F1 family), with PB3/PB4 remapped away from their default JTAG function (JTAG-disable, SWD kept) before being used as button inputs.
+Not started yet. Planned technology stack:
+
+- **STM32CubeIDE** — IDE used for editing, building, flashing and debugging the firmware
+- **STM32CubeMX** — clock tree and peripheral configuration, generates the HAL-based project skeleton
+- **STM32Cube HAL** (Hardware Abstraction Layer) — GPIO, ADC and USART peripheral drivers
+- **STM32Cube USB Device middleware (USB_DEVICE)** — the base USB stack that the custom class sits on top of
+- **USB-MIDI class** (MIDI Streaming, a subclass of USB Audio Class 1.0) — CubeMX has no turnkey template for this on the F1 family, so it will be adapted from ST's own official MIDI streaming example (originally shipped for F4 Discovery boards) rather than generated from scratch
+- **C** — the language STM32Cube projects are generated in and built with
+- **ADC** (STM32F103's 12-bit ADC1, 2 channels used: PA0 for MUX A's `SIG`, PA1 for MUX B's `SIG`) — scanning the two multiplexers across their 16 channels each
+- **GPIO** — digital inputs with internal pull-up for the 15 buttons; digital outputs for the shared S0–S3 multiplexer address lines
+- **USART1** — debug/serial prints running in parallel with USB-MIDI
+- **SWD via ST-Link** (PA13/PA14) — flashing and debugging; requires disabling the JTAG-only part of the debug port early in `main()` (HAL: `__HAL_AFIO_REMAP_SWJCFG_JTAGDISABLE()`) so PB3/PB4 are freed from their reset-default JTDO/JNTRST function and usable as plain button GPIOs
+- No RTOS planned — bare-metal/superloop firmware
