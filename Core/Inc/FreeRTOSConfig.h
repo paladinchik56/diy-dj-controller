@@ -150,6 +150,12 @@ standard names. */
 
 /* USER CODE BEGIN Defines */
 /* Section where parameter definitions can be added (for instance, to override default ones in FreeRTOS.h) */
+
+/* TinyUSB's FreeRTOS port (osal_freertos.h) uses pdTICKS_TO_MS(), which only
+ * exists from FreeRTOS 10.4; the kernel CubeMX ships for F1 is 10.3.1. */
+#ifndef pdTICKS_TO_MS
+#define pdTICKS_TO_MS(xTicks) ((uint32_t)(((uint64_t)(xTicks) * 1000U) / (uint64_t)configTICK_RATE_HZ))
+#endif
 /* USER CODE END Defines */
 
 #endif /* FREERTOS_CONFIG_H */

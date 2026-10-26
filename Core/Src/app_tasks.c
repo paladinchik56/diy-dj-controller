@@ -21,6 +21,7 @@
 #include "buttons.h"
 #include "debug_uart.h"
 #include "main.h"
+#include "usb_midi.h"
 
 #define USB_TASK_STACK_WORDS        256U
 #define CONTROLS_TASK_STACK_WORDS   384U   /* prints the analog debug table */
@@ -42,9 +43,11 @@ static void usb_task(void *argument)
 {
     (void)argument;
 
+    usb_midi_init();
+
     for (;;) {
-        /* TODO step 7: tud_task() from TinyUSB, it blocks until a USB event arrives */
-        vTaskDelay(pdMS_TO_TICKS(1));
+        /* Sleeps until the USB interrupt queues an event, then handles it */
+        usb_midi_task();
     }
 }
 

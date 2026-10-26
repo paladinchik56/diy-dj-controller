@@ -53,11 +53,32 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     Core/Src/analog_filter.c
     Core/Src/debounce.c
     Core/Src/buttons.c
+    Core/Src/usb_midi.c
+    Core/Src/usb_descriptors.c
 )
+
+# TinyUSB (git submodule lib/tinyusb): device core, MIDI class, STM32 FS driver.
+# Configured by Core/Inc/tusb_config.h.
+set(TINYUSB_DIR ${CMAKE_SOURCE_DIR}/lib/tinyusb/src)
+set(TINYUSB_SOURCES
+    ${TINYUSB_DIR}/tusb.c
+    ${TINYUSB_DIR}/common/tusb_fifo.c
+    ${TINYUSB_DIR}/device/usbd.c
+    ${TINYUSB_DIR}/class/midi/midi_device.c
+    ${TINYUSB_DIR}/portable/st/stm32_fsdev/dcd_stm32_fsdev.c
+    ${TINYUSB_DIR}/portable/st/stm32_fsdev/fsdev_common.c
+)
+target_sources(${CMAKE_PROJECT_NAME} PRIVATE ${TINYUSB_SOURCES})
+
+# Always optimise the library for size, also in Debug builds: at -O0 it alone
+# takes ~32 KB of the 64 KB flash. Our own code keeps the build type's flags,
+# so it stays easy to step through in the debugger.
+set_source_files_properties(${TINYUSB_SOURCES} PROPERTIES COMPILE_OPTIONS "-Os")
 
 # Add include paths
 target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
     # Add user defined include paths
+    ${TINYUSB_DIR}
 )
 
 # Add project symbols (macros)
