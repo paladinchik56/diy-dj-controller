@@ -49,6 +49,7 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     Core/Src/mux.c
     Core/Src/debug_uart.c
     Core/Src/app_tasks.c
+    Core/Src/analog.c
 )
 
 # Add include paths

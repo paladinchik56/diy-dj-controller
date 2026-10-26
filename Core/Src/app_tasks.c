@@ -16,17 +16,25 @@
 #include "task.h"
 #include "cmsis_os2.h"
 
+#include "analog.h"
 #include "app_tasks.h"
 #include "debug_uart.h"
 #include "main.h"
 
 #define USB_TASK_STACK_WORDS        256U
-#define CONTROLS_TASK_STACK_WORDS   256U
+#define CONTROLS_TASK_STACK_WORDS   384U   /* prints the analog debug table */
 
 #define USB_TASK_PRIORITY           ((UBaseType_t)osPriorityHigh)
 #define CONTROLS_TASK_PRIORITY      ((UBaseType_t)osPriorityAboveNormal)
 
 #define CONTROLS_PERIOD_MS          1U
+#define ANALOG_SCAN_PERIOD_MS       4U     /* 250 full scans per second */
+
+/* 1 = print raw ADC values every ANALOG_DEBUG_PERIOD_MS. Bench testing only:
+ * each print blocks the controls task for ~10 ms at 115200 baud. */
+#define ANALOG_DEBUG_PRINT          1
+#define ANALOG_DEBUG_PERIOD_MS      500U
+
 #define LED_BLINK_HALF_PERIOD_MS    500U
 
 static void usb_task(void *argument)
@@ -45,12 +53,28 @@ static void controls_task(void *argument)
 
     debug_printf("controls_task started, free heap = %u bytes\n", (unsigned)xPortGetFreeHeapSize());
 
+    analog_init();
+
     /* vTaskDelayUntil() keeps a fixed period measured from this tick,
      * no matter how long the work inside the loop took. */
     TickType_t last_wake = xTaskGetTickCount();
+    uint32_t period_count = 0;   /* number of CONTROLS_PERIOD_MS periods so far */
 
     for (;;) {
-        /* TODO step 4-6: scan buttons and pots, send MIDI */
+        /* TODO step 6: scan buttons here, every period */
+
+        if (period_count % (ANALOG_SCAN_PERIOD_MS / CONTROLS_PERIOD_MS) == 0U) {
+            analog_scan();
+            /* TODO step 5: filter values, send MIDI on change */
+        }
+
+#if ANALOG_DEBUG_PRINT
+        if (period_count % (ANALOG_DEBUG_PERIOD_MS / CONTROLS_PERIOD_MS) == 0U) {
+            analog_debug_print();
+        }
+#endif
+
+        period_count++;
         vTaskDelayUntil(&last_wake, pdMS_TO_TICKS(CONTROLS_PERIOD_MS));
     }
 }
