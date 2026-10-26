@@ -96,3 +96,17 @@ target_link_libraries(${CMAKE_PROJECT_NAME}
 
     # Add user defined libraries
 )
+
+# "flash" target: writes the firmware through ST-Link with STM32CubeProgrammer,
+# then resets the chip. Only defined when the programmer CLI is installed.
+find_program(STM32_PROGRAMMER_CLI STM32_Programmer_CLI
+    HINTS $ENV{HOME}/STMicroelectronics/STM32Cube/STM32CubeProgrammer/bin
+)
+if(STM32_PROGRAMMER_CLI)
+    add_custom_target(flash
+        COMMAND ${STM32_PROGRAMMER_CLI} -c port=SWD -w $<TARGET_FILE:${CMAKE_PROJECT_NAME}> -v -rst
+        DEPENDS ${CMAKE_PROJECT_NAME}
+        USES_TERMINAL
+        COMMENT "Flashing ${CMAKE_PROJECT_NAME} over ST-Link (SWD)"
+    )
+endif()
