@@ -1,6 +1,7 @@
 #ifndef DJ_ANALOG_H
 #define DJ_ANALOG_H
 
+#include <stdbool.h>
 #include <stdint.h>
 
 /*
@@ -43,7 +44,7 @@ typedef enum {
 #define ANALOG_RAW_MAX      4095U
 
 /*
- * Calibrates ADC1 and starts the microsecond delay timer.
+ * Calibrates ADC1, starts the microsecond delay timer, resets the filters.
  * Call once from the task that will scan, before analog_scan().
  */
 void analog_init(void);
@@ -56,6 +57,27 @@ void analog_scan(void);
 
 /* Last raw value (0..ANALOG_RAW_MAX) of a control, updated by analog_scan() */
 uint16_t analog_get(analog_id_t id);
+
+/* Output range after filtering: 7-bit MIDI for most controls, 14-bit for pitch */
+#define ANALOG_OUT_MAX_7BIT     127U
+#define ANALOG_OUT_MAX_14BIT    16383U
+
+/* true for controls reported with 14-bit resolution (the two pitch faders) */
+bool analog_is_high_res(analog_id_t id);
+
+/* Called by analog_process() for every control whose output value changed */
+typedef void (*analog_change_cb_t)(analog_id_t id, uint16_t value);
+
+/*
+ * Runs the latest raw values through the per-control filters (smoothing,
+ * deadband, end dead zones, scaling; see analog_filter.h) and calls on_change
+ * for each control whose output changed. Call after every analog_scan().
+ * The first call after analog_init() reports every control once.
+ */
+void analog_process(analog_change_cb_t on_change);
+
+/* Short control name for debug output, e.g. "BASS_A" */
+const char *analog_name(analog_id_t id);
 
 /* Prints all raw values to the debug UART, for bench testing */
 void analog_debug_print(void);

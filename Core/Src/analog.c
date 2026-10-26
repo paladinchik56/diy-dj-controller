@@ -12,6 +12,7 @@
  */
 
 #include "analog.h"
+#include "analog_filter.h"
 #include "adc.h"
 #include "debug_uart.h"
 #include "mux.h"
@@ -29,7 +30,35 @@ _Static_assert(ANALOG_POT_COUNT <= MUX_CHANNEL_COUNT, "more pots than mux inputs
 /* Same as configured in CubeMX: long enough for pot + mux source impedance */
 #define ADC_SAMPLING_TIME       ADC_SAMPLETIME_71CYCLES_5
 
+/* Deadband in raw ADC units (see analog_filter.h). One 7-bit step is 32 raw
+ * units, so 8 is a quarter step. Pitch needs every unit it can get: after
+ * smoothing the noise is about +-1..2 units, 3 keeps a resting fader still. */
+#define HYSTERESIS_7BIT         8U
+#define HYSTERESIS_14BIT        3U
+
 static uint16_t analog_raw[ANALOG_COUNT];
+static analog_filter_t analog_filters[ANALOG_COUNT];
+
+static const char *const analog_names[ANALOG_COUNT] = {
+    [POT_MASTER]       = "MASTER",
+    [POT_GAIN_A]       = "GAIN_A",
+    [POT_BASS_A]       = "BASS_A",
+    [POT_MID_A]        = "MID_A",
+    [POT_TREBLE_A]     = "TREBLE_A",
+    [POT_FX1_A]        = "FX1_A",
+    [POT_FX2_A]        = "FX2_A",
+    [POT_GAIN_B]       = "GAIN_B",
+    [POT_BASS_B]       = "BASS_B",
+    [POT_MID_B]        = "MID_B",
+    [POT_TREBLE_B]     = "TREBLE_B",
+    [POT_FX1_B]        = "FX1_B",
+    [POT_FX2_B]        = "FX2_B",
+    [FADER_PITCH_A]    = "PITCH_A",
+    [FADER_PITCH_B]    = "PITCH_B",
+    [FADER_CHANNEL_A]  = "CHANNEL_A",
+    [FADER_CHANNEL_B]  = "CHANNEL_B",
+    [FADER_CROSSFADER] = "CROSSFADER",
+};
 
 static void delay_us_init(void)
 {
@@ -82,6 +111,19 @@ void analog_init(void)
     if (HAL_ADCEx_Calibration_Start(&hadc1) != HAL_OK) {
         Error_Handler();
     }
+
+    for (uint8_t id = 0; id < ANALOG_COUNT; id++) {
+        if (analog_is_high_res((analog_id_t)id)) {
+            analog_filter_init(&analog_filters[id], ANALOG_OUT_MAX_14BIT, HYSTERESIS_14BIT);
+        } else {
+            analog_filter_init(&analog_filters[id], ANALOG_OUT_MAX_7BIT, HYSTERESIS_7BIT);
+        }
+    }
+}
+
+bool analog_is_high_res(analog_id_t id)
+{
+    return (id == FADER_PITCH_A) || (id == FADER_PITCH_B);
 }
 
 void analog_scan(void)
@@ -107,6 +149,24 @@ uint16_t analog_get(analog_id_t id)
         return 0;
     }
     return analog_raw[id];
+}
+
+void analog_process(analog_change_cb_t on_change)
+{
+    for (uint8_t id = 0; id < ANALOG_COUNT; id++) {
+        uint16_t value;
+        if (analog_filter_update(&analog_filters[id], analog_raw[id], &value)) {
+            on_change((analog_id_t)id, value);
+        }
+    }
+}
+
+const char *analog_name(analog_id_t id)
+{
+    if (id >= ANALOG_COUNT) {
+        return "?";
+    }
+    return analog_names[id];
 }
 
 void analog_debug_print(void)

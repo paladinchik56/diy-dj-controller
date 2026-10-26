@@ -50,6 +50,7 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     Core/Src/debug_uart.c
     Core/Src/app_tasks.c
     Core/Src/analog.c
+    Core/Src/analog_filter.c
 )
 
 # Add include paths

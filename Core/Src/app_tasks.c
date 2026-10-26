@@ -32,7 +32,7 @@
 
 /* 1 = print raw ADC values every ANALOG_DEBUG_PERIOD_MS. Bench testing only:
  * each print blocks the controls task for ~10 ms at 115200 baud. */
-#define ANALOG_DEBUG_PRINT          1
+#define ANALOG_DEBUG_PRINT          0
 #define ANALOG_DEBUG_PERIOD_MS      500U
 
 #define LED_BLINK_HALF_PERIOD_MS    500U
@@ -45,6 +45,12 @@ static void usb_task(void *argument)
         /* TODO step 7: tud_task() from TinyUSB, it blocks until a USB event arrives */
         vTaskDelay(pdMS_TO_TICKS(1));
     }
+}
+
+/* Until USB-MIDI exists (step 7) changes are only printed */
+static void on_analog_change(analog_id_t id, uint16_t value)
+{
+    debug_printf("%-10s -> %5u\n", analog_name(id), value);
 }
 
 static void controls_task(void *argument)
@@ -65,7 +71,7 @@ static void controls_task(void *argument)
 
         if (period_count % (ANALOG_SCAN_PERIOD_MS / CONTROLS_PERIOD_MS) == 0U) {
             analog_scan();
-            /* TODO step 5: filter values, send MIDI on change */
+            analog_process(on_analog_change);
         }
 
 #if ANALOG_DEBUG_PRINT
