@@ -12,6 +12,8 @@
  * Tasks that print need more stack: newlib formatting uses a few hundred bytes.
  */
 
+#include <stddef.h>
+
 #include "FreeRTOS.h"
 #include "task.h"
 #include "cmsis_os2.h"
@@ -21,6 +23,7 @@
 #include "buttons.h"
 #include "debug_uart.h"
 #include "main.h"
+#include "midi_map.h"
 #include "usb_midi.h"
 
 #define USB_TASK_STACK_WORDS        256U
@@ -37,6 +40,9 @@
 #define ANALOG_DEBUG_PRINT          0
 #define ANALOG_DEBUG_PERIOD_MS      500U
 
+/* 1 = print every button event and analog value change (bench testing) */
+#define CONTROLS_DEBUG_PRINT        0
+
 #define LED_BLINK_HALF_PERIOD_MS    500U
 
 static void usb_task(void *argument)
@@ -51,18 +57,21 @@ static void usb_task(void *argument)
     }
 }
 
-/* Until USB-MIDI exists (step 7) changes are only printed */
+#if CONTROLS_DEBUG_PRINT
 static void on_analog_change(analog_id_t id, uint16_t value)
 {
     debug_printf("%-10s -> %5u\n", analog_name(id), value);
 }
+#endif
 
-/* Until USB-MIDI exists (step 7) button events are only printed */
 static void on_button_event(const button_event_t *event)
 {
+#if CONTROLS_DEBUG_PRINT
     debug_printf("%-10s %s%s\n", buttons_name(event->id),
                  event->pressed ? "pressed" : "released",
                  event->shifted ? " (shift)" : "");
+#endif
+    midi_map_on_button(event);
 }
 
 static void controls_task(void *argument)
@@ -73,6 +82,7 @@ static void controls_task(void *argument)
 
     analog_init();
     buttons_init();
+    midi_map_init();
 
     /* vTaskDelayUntil() keeps a fixed period measured from this tick,
      * no matter how long the work inside the loop took. */
@@ -84,7 +94,12 @@ static void controls_task(void *argument)
 
         if (period_count % (ANALOG_SCAN_PERIOD_MS / CONTROLS_PERIOD_MS) == 0U) {
             analog_scan();
+#if CONTROLS_DEBUG_PRINT
             analog_process(on_analog_change);
+#else
+            analog_process(NULL);
+#endif
+            midi_map_sync_analog();
         }
 
 #if ANALOG_DEBUG_PRINT

@@ -71,10 +71,16 @@ typedef void (*analog_change_cb_t)(analog_id_t id, uint16_t value);
 /*
  * Runs the latest raw values through the per-control filters (smoothing,
  * deadband, end dead zones, scaling; see analog_filter.h) and calls on_change
- * for each control whose output changed. Call after every analog_scan().
- * The first call after analog_init() reports every control once.
+ * (may be NULL) for each control whose output changed. Call after every
+ * analog_scan(). The first call after analog_init() reports every control once.
  */
 void analog_process(analog_change_cb_t on_change);
+
+/* true once analog_process() has run, i.e. analog_output() is meaningful */
+bool analog_is_ready(void);
+
+/* Current filtered output of a control: 0..127, or 0..16383 if high-res */
+uint16_t analog_output(analog_id_t id);
 
 /* Short control name for debug output, e.g. "BASS_A" */
 const char *analog_name(analog_id_t id);

@@ -55,6 +55,7 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     Core/Src/buttons.c
     Core/Src/usb_midi.c
     Core/Src/usb_descriptors.c
+    Core/Src/midi_map.c
 )
 
 # TinyUSB (git submodule lib/tinyusb): device core, MIDI class, STM32 FS driver.

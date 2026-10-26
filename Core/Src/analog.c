@@ -11,6 +11,8 @@
  * microsecond delays while the mux output settles.
  */
 
+#include <stddef.h>
+
 #include "analog.h"
 #include "analog_filter.h"
 #include "adc.h"
@@ -38,6 +40,7 @@ _Static_assert(ANALOG_POT_COUNT <= MUX_CHANNEL_COUNT, "more pots than mux inputs
 
 static uint16_t analog_raw[ANALOG_COUNT];
 static analog_filter_t analog_filters[ANALOG_COUNT];
+static bool analog_ready;
 
 static const char *const analog_names[ANALOG_COUNT] = {
     [POT_MASTER]       = "MASTER",
@@ -155,10 +158,24 @@ void analog_process(analog_change_cb_t on_change)
 {
     for (uint8_t id = 0; id < ANALOG_COUNT; id++) {
         uint16_t value;
-        if (analog_filter_update(&analog_filters[id], analog_raw[id], &value)) {
+        if (analog_filter_update(&analog_filters[id], analog_raw[id], &value) && on_change != NULL) {
             on_change((analog_id_t)id, value);
         }
     }
+    analog_ready = true;
+}
+
+bool analog_is_ready(void)
+{
+    return analog_ready;
+}
+
+uint16_t analog_output(analog_id_t id)
+{
+    if (id >= ANALOG_COUNT) {
+        return 0;
+    }
+    return analog_filters[id].out;
 }
 
 const char *analog_name(analog_id_t id)
