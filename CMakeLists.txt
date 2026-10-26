@@ -51,6 +51,8 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     Core/Src/app_tasks.c
     Core/Src/analog.c
     Core/Src/analog_filter.c
+    Core/Src/debounce.c
+    Core/Src/buttons.c
 )
 
 # Add include paths

@@ -18,6 +18,7 @@
 
 #include "analog.h"
 #include "app_tasks.h"
+#include "buttons.h"
 #include "debug_uart.h"
 #include "main.h"
 
@@ -53,6 +54,14 @@ static void on_analog_change(analog_id_t id, uint16_t value)
     debug_printf("%-10s -> %5u\n", analog_name(id), value);
 }
 
+/* Until USB-MIDI exists (step 7) button events are only printed */
+static void on_button_event(const button_event_t *event)
+{
+    debug_printf("%-10s %s%s\n", buttons_name(event->id),
+                 event->pressed ? "pressed" : "released",
+                 event->shifted ? " (shift)" : "");
+}
+
 static void controls_task(void *argument)
 {
     (void)argument;
@@ -60,6 +69,7 @@ static void controls_task(void *argument)
     debug_printf("controls_task started, free heap = %u bytes\n", (unsigned)xPortGetFreeHeapSize());
 
     analog_init();
+    buttons_init();
 
     /* vTaskDelayUntil() keeps a fixed period measured from this tick,
      * no matter how long the work inside the loop took. */
@@ -67,7 +77,7 @@ static void controls_task(void *argument)
     uint32_t period_count = 0;   /* number of CONTROLS_PERIOD_MS periods so far */
 
     for (;;) {
-        /* TODO step 6: scan buttons here, every period */
+        buttons_scan(on_button_event);
 
         if (period_count % (ANALOG_SCAN_PERIOD_MS / CONTROLS_PERIOD_MS) == 0U) {
             analog_scan();
