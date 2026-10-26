@@ -6,7 +6,7 @@
  * FreeRTOS unchanged (osPriorityLow = 8, Normal = 24, High = 40...).
  *   usb_task      osPriorityHigh         must answer the host quickly or USB stalls
  *   controls_task osPriorityAboveNormal  fixed 1 ms period for button/pot scanning
- *   led_task      set in CubeMX          cosmetic, runs when nothing else needs the CPU
+ *   led_task      set in CubeMX          USB status LED, runs when nothing else needs the CPU
  *
  * Stack sizes are in words (4 bytes on Cortex-M3), not bytes.
  * Tasks that print need more stack: newlib formatting uses a few hundred bytes.
@@ -117,9 +117,17 @@ void led_task(void *argument)
 {
     (void)argument;
 
+    /*
+     * GPIO PC13: on-board Blue Pill LED, active-low (RESET = on).
+     *   blinking at 1 Hz  firmware running, USB-MIDI not connected yet
+     *   steady on         host has configured the device, MIDI is live
+     */
     for (;;) {
-        /* GPIO PC13: on-board Blue Pill LED, active-low. Blinking = scheduler alive. */
-        HAL_GPIO_TogglePin(LED_GPIO_Port, LED_Pin);
+        if (usb_midi_is_mounted()) {
+            HAL_GPIO_WritePin(LED_GPIO_Port, LED_Pin, GPIO_PIN_RESET);
+        } else {
+            HAL_GPIO_TogglePin(LED_GPIO_Port, LED_Pin);
+        }
         vTaskDelay(pdMS_TO_TICKS(LED_BLINK_HALF_PERIOD_MS));
     }
 }
