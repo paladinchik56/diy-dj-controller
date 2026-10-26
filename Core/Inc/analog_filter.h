@@ -25,13 +25,16 @@ typedef struct {
     uint16_t out_max;       /* 127 for 7-bit MIDI, 16383 for 14-bit */
     uint16_t hysteresis;    /* deadband in raw ADC units */
     bool     primed;        /* false until the first reading */
+    uint8_t  settling;      /* readings left in the power-up settling phase */
 } analog_filter_t;
 
 void analog_filter_init(analog_filter_t *f, uint16_t out_max, uint16_t hysteresis);
 
 /*
  * Feeds one raw reading (0..4095). Returns true and writes *out when the
- * output value changed (the first reading always counts as a change).
+ * output value changed. The first reading always counts as a change; at most
+ * one more correction follows at the end of the settling phase (first 16
+ * readings), after that a resting control stays silent.
  */
 bool analog_filter_update(analog_filter_t *f, uint16_t raw, uint16_t *out);
 
