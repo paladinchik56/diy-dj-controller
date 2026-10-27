@@ -33,10 +33,12 @@ _Static_assert(ANALOG_POT_COUNT <= MUX_CHANNEL_COUNT, "more pots than mux inputs
 #define ADC_SAMPLING_TIME       ADC_SAMPLETIME_71CYCLES_5
 
 /* Deadband in raw ADC units (see analog_filter.h). One 7-bit step is 32 raw
- * units, so 8 is a quarter step. Pitch needs every unit it can get: after
- * smoothing the noise is about +-1..2 units, 3 keeps a resting fader still. */
+ * units, so 8 is a quarter step. Pitch trades resolution for stillness: the
+ * host simulation (tests/sim_controller.c, idle_noise) shows 6 keeps a resting
+ * fader silent with up to +-6 units of ADC noise, still ~670 distinct
+ * positions over the travel (5x the 128 of a 7-bit CC). Retune on hardware. */
 #define HYSTERESIS_7BIT         8U
-#define HYSTERESIS_14BIT        3U
+#define HYSTERESIS_14BIT        6U
 
 static uint16_t analog_raw[ANALOG_COUNT];
 static analog_filter_t analog_filters[ANALOG_COUNT];

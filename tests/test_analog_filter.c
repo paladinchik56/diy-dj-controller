@@ -79,24 +79,24 @@ static void test_pitch_14bit(void)
     uint16_t out;
     int changes = 0;
 
-    analog_filter_init(&f, 16383, 3);
+    analog_filter_init(&f, 16383, 6);
     for (int i = 0; i < 17; i++) {      /* first reading + settling phase */
-        analog_filter_update(&f, clamp_raw(1500 + test_noise(2)), &out);
+        analog_filter_update(&f, clamp_raw(1500 + test_noise(4)), &out);
     }
     for (int i = 0; i < 2500; i++) {
-        changes += analog_filter_update(&f, clamp_raw(1500 + test_noise(2)), &out);
+        changes += analog_filter_update(&f, clamp_raw(1500 + test_noise(4)), &out);
     }
     CHECK(changes == 0, "resting pitch fader changed %d times", changes);
 
     int steps = 0;
-    analog_filter_init(&f, 16383, 3);
+    analog_filter_init(&f, 16383, 6);
     for (int i = 0; i <= 4000; i++) {
-        steps += analog_filter_update(&f, clamp_raw(i * 4095 / 4000 + test_noise(2)), &out);
+        steps += analog_filter_update(&f, clamp_raw(i * 4095 / 4000 + test_noise(4)), &out);
     }
     for (int i = 0; i < 50; i++) {
         analog_filter_update(&f, 4095, &out);
     }
-    CHECK(steps > 1000, "pitch sweep gave only %d steps", steps);
+    CHECK(steps > 500, "pitch sweep gave only %d steps", steps);
     CHECK(f.out == 16383, "pitch sweep ended at %u, expected 16383", f.out);
 }
 
