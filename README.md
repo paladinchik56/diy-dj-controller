@@ -9,6 +9,7 @@ Status: parts ordered, wiring verified against the official datasheet, firmware 
 - 13 rotary potentiometers (gain/bass/mid/treble/FX x2 per deck, plus master)
 - 5 slide potentiometers (2x pitch, 2x channel fader, crossfader)
 - 15 momentary buttons (play/cue/sync/hotcues/shift per deck)
+- Connection to the computer: one cable, micro-USB on the controller side, USB-C on the laptop side (USB 2.0 full speed; it carries both MIDI and power). The board keeps its stock micro-USB socket, brought out to the case through the panel-mount extension (BOM #10).
 - Only 10 of the Blue Pill's pins are ADC-capable (PA0-PA7, PB0, PB1 — confirmed against the ST datasheet in this project), so the 18 analog controls are read through two CD74HC4067 multiplexers (one for the pots, one for the sliders) sharing a single 4-wire address bus, leaving most ADC channels free for future expansion.
 - All controls connect to an intermediate perfboard through pin headers + Dupont connectors rather than being soldered directly, so any part can be swapped without a soldering iron.
 

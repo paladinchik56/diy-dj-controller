@@ -15,7 +15,8 @@ Build and check in stages, so a problem always points at the last thing added.
 ## Stage 2: USB-MIDI
 
 1. Remove the ST-Link 3.3V wire (keep SWDIO, SWCLK, GND).
-2. Connect the Blue Pill micro-USB to the PC (a data cable, not charge-only).
+2. Connect the Blue Pill micro-USB to the laptop with a micro-USB to USB-C
+   cable (a data cable, not charge-only).
 3. Expected: LED steady on; `aseqdump -l` lists "DIY DJ Controller".
 4. If the device does not appear: `dmesg -w` while plugging in. Some Blue Pills
    have a wrong 10k pull-up (R10) on D+ instead of 1.5k; many PCs still accept
