@@ -98,19 +98,69 @@ void midi_map_init(void)
     forget_sent_values();
 }
 
+/*
+ * Note messages waiting for room in the USB TX buffer, oldest first. Buttons
+ * must never be lost: a missing Note Off leaves the note stuck on in the DJ
+ * software. 32 entries = every button pressed and released while the host
+ * reads nothing; analog controls need no queue, they are resent anyway.
+ */
+#define NOTE_QUEUE_LEN          32U
+
+typedef struct {
+    uint8_t channel;
+    uint8_t note;
+    bool    on;
+} note_msg_t;
+
+static note_msg_t note_queue[NOTE_QUEUE_LEN];
+static uint8_t note_queue_head;
+static uint8_t note_queue_count;
+
 void midi_map_on_button(const button_event_t *event)
 {
     const midi_target_t *t = &button_map[event->id];
     const uint8_t note = (uint8_t)(t->number + (event->shifted ? MIDI_SHIFT_NOTE_OFFSET : 0U));
 
-    const bool sent = usb_midi_send_note(t->channel, note, event->pressed, MIDI_NOTE_VELOCITY);
+    /* Not connected: nobody listens, and a stale press must not arrive later */
+    if (!usb_midi_is_mounted()) {
+        return;
+    }
+
+    if (note_queue_count == NOTE_QUEUE_LEN) {
+#if MIDI_DEBUG_PRINT
+        debug_printf("note ch%u %3u dropped, queue full\n", t->channel + 1U, note);
+#endif
+        return;
+    }
+
+    note_queue[(note_queue_head + note_queue_count) % NOTE_QUEUE_LEN] = (note_msg_t){
+        .channel = t->channel,
+        .note    = note,
+        .on      = event->pressed,
+    };
+    note_queue_count++;
+}
+
+void midi_map_send_notes(void)
+{
+    if (!usb_midi_is_mounted()) {
+        note_queue_count = 0;
+        return;
+    }
+
+    while (note_queue_count > 0U) {
+        const note_msg_t *m = &note_queue[note_queue_head];
+        if (!usb_midi_send_note(m->channel, m->note, m->on, MIDI_NOTE_VELOCITY)) {
+            /* USB buffer full: keep it, retry on the next call */
+            return;
+        }
 
 #if MIDI_DEBUG_PRINT
-    debug_printf("note ch%u %3u %s%s\n", t->channel + 1U, note,
-                 event->pressed ? "on" : "off", sent ? "" : " (not sent)");
-#else
-    (void)sent;
+        debug_printf("note ch%u %3u %s\n", m->channel + 1U, m->note, m->on ? "on" : "off");
 #endif
+        note_queue_head = (uint8_t)((note_queue_head + 1U) % NOTE_QUEUE_LEN);
+        note_queue_count--;
+    }
 }
 
 void midi_map_sync_analog(void)
@@ -119,7 +169,8 @@ void midi_map_sync_analog(void)
         forget_sent_values();
     }
 
-    if (!usb_midi_is_mounted() || !analog_is_ready()) {
+    /* Buttons go first: while notes still wait for buffer room, keep it for them */
+    if (!usb_midi_is_mounted() || !analog_is_ready() || note_queue_count > 0U) {
         return;
     }
 

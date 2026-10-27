@@ -632,6 +632,7 @@ void sim_run_ms(uint32_t ms)
         panel_update();
 
         buttons_scan(on_button_event);
+        midi_map_send_notes();
         if (period_count % (ANALOG_SCAN_PERIOD_MS / CONTROLS_PERIOD_MS) == 0U) {
             analog_scan();
             analog_process(NULL);

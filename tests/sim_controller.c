@@ -250,7 +250,8 @@ static void scenario_shift(void)
     check_clean_stream();
 }
 
-/* Faders moved while unplugged are sent again after re-plugging */
+/* Faders moved while unplugged are sent again after re-plugging; stale
+ * button presses from that time are not */
 static void scenario_reconnect(void)
 {
     sim_boot();
@@ -259,10 +260,16 @@ static void scenario_reconnect(void)
     sim_usb_disconnect();
     sim_analog("CROSSFADER", 4000);
     sim_analog("PITCH_A", 1000);
-    sim_run_ms(200);
+    sim_button("PLAY_A", true, 2);      /* pressed and released while unplugged */
+    sim_run_ms(100);
+    sim_button("PLAY_A", false, 2);
+    sim_run_ms(100);
 
+    const size_t from = sim_log_count();
     sim_usb_connect();
     sim_run_ms(20);
+    CHECK(find_msg(from, 0x90, 0) < 0 && find_msg(from, 0x80, 0) < 0,
+          "a button pressed while unplugged was sent after re-plugging");
     for (size_t i = 0; i < sim_analog_count; i++) {
         const sim_analog_t *a = &sim_analogs[i];
         const uint16_t raw = strcmp(a->name, "CROSSFADER") == 0 ? 4000

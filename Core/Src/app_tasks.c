@@ -91,6 +91,7 @@ static void controls_task(void *argument)
 
     for (;;) {
         buttons_scan(on_button_event);
+        midi_map_send_notes();
 
         if (period_count % (ANALOG_SCAN_PERIOD_MS / CONTROLS_PERIOD_MS) == 0U) {
             analog_scan();

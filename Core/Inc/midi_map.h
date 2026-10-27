@@ -10,8 +10,17 @@
 
 void midi_map_init(void);
 
-/* Sends Note On/Off for a debounced button event (Shift layer included) */
+/*
+ * Queues Note On/Off for a debounced button event (Shift layer included).
+ * Dropped while USB is not connected.
+ */
 void midi_map_on_button(const button_event_t *event);
+
+/*
+ * Sends the queued notes, in order, as far as the USB buffer has room; the
+ * rest stays queued for the next call. Call after every buttons_scan().
+ */
+void midi_map_send_notes(void);
 
 /*
  * Sends every analog control whose current output differs from the value
